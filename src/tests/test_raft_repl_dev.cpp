@@ -309,7 +309,7 @@ public:
         }
     }
 
-    void write_on_leader(uint32_t num_entries, bool wait_for_commit = true) {
+    void write_on_leader(uint32_t num_entries, bool wait_for_commit = true, block_size = SISL_OPTIONS["block_size"].as< uint32_t >()) {
         do {
             auto leader_uuid = dbs_[0]->repl_dev()->get_leader_id();
 
@@ -319,7 +319,6 @@ public:
             } else if (leader_uuid == g_helper->my_replica_id()) {
                 LOGINFO("Writing {} entries since I am the leader my_uuid={}", num_entries,
                         boost::uuids::to_string(g_helper->my_replica_id()));
-                auto const block_size = SISL_OPTIONS["block_size"].as< uint32_t >();
                 g_helper->runner().set_num_tasks(num_entries);
 
                 LOGINFO("Run on worker threads to schedule append on repldev for {} Bytes.", block_size);
@@ -383,6 +382,22 @@ TEST_F(RaftReplDevTest, Write_Restart_Write) {
     this->write_on_leader(entries_per_attempt, true /* wait_for_commit */);
 
     LOGINFO("Validate all data written (including pre-restart data) by reading them");
+    this->validate_data();
+    g_helper->sync_for_cleanup_start();
+}
+
+TEST_F(RaftReplDevTest, Big_IO) {
+    LOGINFO("Homestore replica={} setup completed", g_helper->replica_num());
+    g_helper->sync_for_test_start();
+    if (g_helper->replica_num() != 0) {
+        LOGINFO("Set flip to fake fetch data request on data channel");
+        set_basic_flip("drop_push_data_request");
+    }
+    this->write_on_leader(100,  true /* wait_for_commit */, 1024*1024*64);
+
+    g_helper->sync_for_verify_start();
+
+    LOGINFO("Validate all data written so far by reading them");
     this->validate_data();
     g_helper->sync_for_cleanup_start();
 }
