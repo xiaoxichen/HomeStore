@@ -165,6 +165,7 @@ public:
 
     uint64_t app_mem_size{static_cast< uint64_t >(1024) * static_cast< uint64_t >(1024) *
                           static_cast< uint64_t >(1024)}; // memory available for the app (including cache)
+    int32_t max_io_size{65 * 1024 * 1024};                // Maximum single IO size HS can take (default 65MB)
     uint64_t hugepage_size{0};                            // memory available for the hugepage
     bool is_read_only{false};                             // Is read only
     bool auto_recovery{true};                             // Recovery of data is automatic or controlled by the caller

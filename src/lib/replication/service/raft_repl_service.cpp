@@ -75,6 +75,7 @@ void RaftReplService::start() {
     auto params = nuraft_mesg::Manager::Params{
         .server_uuid_ = m_my_uuid,
         .mesg_port_ = m_repl_app->lookup_peer(m_my_uuid).second,
+        .max_message_size_ = HS_STATIC_CONFIG(input.max_io_size),
         .default_group_type_ = "homestore_replication",
         .ssl_key_ = ioenvironment.get_ssl_key(),
         .ssl_cert_ = ioenvironment.get_ssl_cert(),
