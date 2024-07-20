@@ -108,7 +108,8 @@ public:
     uint64_t last_commit_index() override;
     raft_buf_ptr_t pre_commit_ext(const nuraft::state_machine::ext_op_params& params) override;
     raft_buf_ptr_t commit_ext(const nuraft::state_machine::ext_op_params& params) override;
-    void rollback(uint64_t lsn, nuraft::buffer&) override { LOGCRITICAL("Unimplemented rollback on: [{}]", lsn); }
+    raft_buf_ptr_t rollback_ext(const nuraft::state_machine::ext_op_params& params) override;
+    // void rollback(uint64_t lsn, nuraft::buffer&) override { LOGCRITICAL("Unimplemented rollback on: [{}]", lsn); }
     void become_ready();
 
     bool apply_snapshot(nuraft::snapshot&) override { return false; }
