@@ -686,42 +686,6 @@ off_t JournalVirtualDev::Descriptor::truncate(off_t truncate_offset) {
     return data_start_offset();
 }
 
-#if 0
-uint64_t JournalVirtualDev::Descriptor::get_offset_in_dev(uint32_t dev_id, uint32_t chunk_id, uint64_t offset_in_chunk) const {
-    return get_chunk_start_offset(dev_id, chunk_id) + offset_in_chunk;
-}
-
-uint64_t JournalVirtualDev::Descriptor::get_chunk_start_offset(uint32_t dev_id, uint32_t chunk_id) const {
-    return m_primary_pdev_chunks_list[dev_id].chunks_in_pdev[chunk_id]->start_offset();
-}
-
-uint64_t JournalVirtualDev::Descriptor::logical_to_dev_offset(off_t log_offset, uint32_t& dev_id, uint32_t& chunk_id,
-                                                  off_t& offset_in_chunk) const {
-    dev_id = 0;
-    chunk_id = 0;
-    offset_in_chunk = 0;
-
-    uint64_t off_l{static_cast< uint64_t >(log_offset)};
-    for (size_t d{0}; d < m_primary_pdev_chunks_list.size(); ++d) {
-        for (size_t c{0}; c < m_primary_pdev_chunks_list[d].chunks_in_pdev.size(); ++c) {
-            if (off_l >= m_chunk_size) {
-                off_l -= m_chunk_size;
-            } else {
-                dev_id = d;
-                chunk_id = c;
-                offset_in_chunk = off_l;
-
-                return get_offset_in_dev(dev_id, chunk_id, offset_in_chunk);
-            }
-        }
-    }
-
-    HS_DBG_ASSERT(false, "Input log_offset is invalid: {}, should be between 0 ~ {}", log_offset,
-                  m_chunk_size * m_num_chunks);
-    return 0;
-}
-#endif
-
 std::tuple< shared< Chunk >, uint32_t, off_t > JournalVirtualDev::Descriptor::offset_to_chunk(off_t log_offset,
                                                                                               bool check) const {
     uint64_t chunk_aligned_offset = sisl::round_down(m_data_start_offset, m_vdev.info().chunk_size);

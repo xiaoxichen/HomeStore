@@ -348,41 +348,6 @@ public:
          */
         auto process_pwrite_offset(size_t len, off_t offset);
 
-        /**
-         * @brief : convert logical offset in chunk to the physical device offset
-         *
-         * @param dev_id : the device id
-         * @param chunk_id : the chunk id;
-         * @param offset_in_chunk : the logical offset in chunk;
-         *
-         * @return : the physical device offset;
-         */
-        uint64_t get_offset_in_dev(uint32_t dev_id, uint32_t chunk_id, uint64_t offset_in_chunk) const;
-
-        /**
-         * @brief : get the physical start offset of the chunk;
-         *
-         * @param dev_id : the deivce id;
-         * @param chunk_id : the chunk id;
-         *
-         * @return : the physical start offset of the chunk;
-         */
-        uint64_t get_chunk_start_offset(uint32_t dev_id, uint32_t chunk_id) const;
-
-        /**
-         * @brief : Convert from logical offset to device offset.
-         * It handles device overloop, e.g. reach to end of the device then start from the beginning device
-         *
-         * @param log_offset : the logical offset
-         * @param dev_id     : the device id after convertion
-         * @param chunk_id   : the chunk id after convertion
-         * @param offset_in_chunk : the relative offset in chunk
-         *
-         * @return : the unique offset after converion;
-         */
-        // uint64_t logical_to_dev_offset(off_t log_offset, uint32_t& dev_id, uint32_t& chunk_id,
-        //                                off_t& offset_in_chunk) const;
-
         // Return the chunk, its index and offset in the chunk list.
         std::tuple< shared< Chunk >, uint32_t, off_t > offset_to_chunk(off_t log_offset, bool check = true) const;
 
