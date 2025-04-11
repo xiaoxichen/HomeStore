@@ -496,6 +496,8 @@ public:
         });
     }
 
+    bool can_submit_io(int max_qd) { return m_outstanding_io_cnt.load(std::memory_order_acquire) < max_qd; }
+
     // wait for all outstanding io to complete
     void wait_for_outstanding_io_done() {
         while (this->m_outstanding_io_cnt.load() != 0) {
@@ -945,7 +947,7 @@ TEST_F(BlkDataServiceTest, TestRandMixIOLoad) {
         auto const qd = 1;
 
         // Perform the I/O operation
-        while (m_outstanding_io_cnt.load(std::memory_order_acquire) < qd) {
+        while (can_submit_io(qd)) {
             ++i;
             switch (io_op) {
             case DataSvcOp_t::async_alloc_write: // Write
