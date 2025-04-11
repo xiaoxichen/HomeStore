@@ -439,7 +439,6 @@ public:
             ++m_total_io_comp_cnt;
 	    return rc;
         });
-	std::move(fut).wait();
     }
 
     // read_io has to process and send async_read all the blkids before it can exit and yielf to next io;
@@ -937,40 +936,44 @@ TEST_F(BlkDataServiceTest, TestRandMixIOLoad) {
     auto const num_io = gp.num_io;
 
     // Start the I/O operations
-    for (uint64_t i = 0; i < num_io; ++i) {
+    for (uint64_t i = 0; i < num_io;) {
         // Generate a random I/O size round up to blk_size;
         uint32_t const io_size = gen_rand_io_size();
 
         // Generate a random I/O operation
         auto const io_op = gen_rand_op_type();
+        auto const qd = 1;
 
         // Perform the I/O operation
-        switch (io_op) {
-        case DataSvcOp_t::async_alloc_write: // Write
-            this->write_io_load(io_size);
-            break;
-        case DataSvcOp_t::async_read: // Read
+        while (m_outstanding_io_cnt.load(std::memory_order_acquire) < qd) {
+            ++i;
+            switch (io_op) {
+            case DataSvcOp_t::async_alloc_write: // Write
+                this->write_io_load(io_size);
+                break;
+            case DataSvcOp_t::async_read: // Read
 
-            // iomanager.run_on_forget(iomgr::reactor_regex::random_worker, [this, io_size]() {
-            // this->read_io(io_size);});
-            this->read_io(io_size);
-            break;
-        case DataSvcOp_t::async_free: // free
-        {
-            auto const blkid = get_rand_blkid_to_free();
-            if (blkid.is_valid()) {
-                iomanager.run_on_forget(iomgr::reactor_regex::random_worker,
-                                        [this, blkid]() { this->free_blk(blkid); });
+                // iomanager.run_on_forget(iomgr::reactor_regex::random_worker, [this, io_size]() {
+                // this->read_io(io_size);});
+                this->read_io(io_size);
+                break;
+            case DataSvcOp_t::async_free: // free
+            {
+                auto const blkid = get_rand_blkid_to_free();
+                if (blkid.is_valid()) {
+                    iomanager.run_on_forget(iomgr::reactor_regex::random_worker,
+                                            [this, blkid]() { this->free_blk(blkid); });
+                }
+                // else skip this free request as not able to find a good free candidate;
+                // it can happen if there is little blk left in the map, and all of them are already pending
+                // free;
+                break;
             }
-            // else skip this free request as not able to find a good free candidate;
-            // it can happen if there is little blk left in the map, and all of them are already pending
-            // free;
-            break;
-        }
-        case DataSvcOp_t::max_op:
-        default:
-            RELEASE_ASSERT(false, "Unexpected I/O operation type");
-            break;
+            case DataSvcOp_t::max_op:
+            default:
+                RELEASE_ASSERT(false, "Unexpected I/O operation type");
+                break;
+            }
         }
     }
 
