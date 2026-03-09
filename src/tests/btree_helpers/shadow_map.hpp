@@ -121,6 +121,19 @@ public:
         m_range_scheduler.remove_key(key.key());
     }
 
+    // Scattered key support - bypasses range scheduler completely
+    void force_put_scattered(const K& key, const V& val) {
+        std::lock_guard lock{m_mutex};
+        m_map.insert_or_assign(key, val);
+        // Do NOT call range_scheduler - scattered keys don't fit in bitset
+    }
+
+    void erase_scattered(const K& key) {
+        std::lock_guard lock{m_mutex};
+        m_map.erase(key);
+        // Do NOT call range_scheduler - scattered keys don't fit in bitset
+    }
+
     void range_erase(const K& start_key, uint32_t count) {
         std::lock_guard lock{m_mutex};
         auto it = m_map.lower_bound(start_key);

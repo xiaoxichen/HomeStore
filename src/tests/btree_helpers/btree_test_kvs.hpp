@@ -397,32 +397,44 @@ public:
 
 class TestFixedValue : public BtreeValue {
 private:
+    static constexpr size_t VALUE_SIZE = 64; // Balance between node fill rate and resource limits
 public:
     TestFixedValue(bnodeid_t val) { assert(0); }
-    TestFixedValue(uint32_t val) : BtreeValue() { m_val = val; }
+    TestFixedValue(uint32_t val) : BtreeValue() {
+        m_val[0] = val;
+        for (size_t i = 1; i < VALUE_SIZE / sizeof(uint32_t); ++i) {
+            m_val[i] = val + i; // Fill with pattern
+        }
+    }
     TestFixedValue() : TestFixedValue((uint32_t)-1) {}
-    TestFixedValue(const TestFixedValue& other) : BtreeValue() { m_val = other.m_val; };
-    TestFixedValue(const sisl::blob& b, bool copy) : BtreeValue() { m_val = *(r_cast< uint32_t const* >(b.cbytes())); }
+    TestFixedValue(const TestFixedValue& other) : BtreeValue() {
+        std::memcpy(m_val, other.m_val, VALUE_SIZE);
+    }
+    TestFixedValue(const sisl::blob& b, bool copy) : BtreeValue() {
+        std::memcpy(m_val, b.cbytes(), std::min(static_cast<size_t>(b.size()), VALUE_SIZE));
+    }
     virtual ~TestFixedValue() = default;
 
     static TestFixedValue generate_rand() { return TestFixedValue{g_randval_generator(g_re)}; }
     static TestFixedValue zero() { return TestFixedValue{uint32_t(0)}; }
 
     TestFixedValue& operator=(const TestFixedValue& other) {
-        m_val = other.m_val;
+        std::memcpy(m_val, other.m_val, VALUE_SIZE);
         return *this;
     }
 
     sisl::blob serialize() const override {
-        sisl::blob b{r_cast< uint8_t const* >(&m_val), uint32_cast(sizeof(m_val))};
+        sisl::blob b{r_cast< uint8_t const* >(m_val), uint32_cast(VALUE_SIZE)};
         return b;
     }
 
-    uint32_t serialized_size() const override { return sizeof(m_val); }
-    static uint32_t get_fixed_size() { return sizeof(m_val); }
-    void deserialize(const sisl::blob& b, bool copy) { m_val = *(r_cast< uint32_t const* >(b.cbytes())); }
+    uint32_t serialized_size() const override { return VALUE_SIZE; }
+    static uint32_t get_fixed_size() { return VALUE_SIZE; }
+    void deserialize(const sisl::blob& b, bool copy) {
+        std::memcpy(m_val, b.cbytes(), std::min(static_cast<size_t>(b.size()), VALUE_SIZE));
+    }
 
-    std::string to_string() const override { return fmt::format("{}", m_val); }
+    std::string to_string() const override { return fmt::format("{}", m_val[0]); }
 
     friend std::ostream& operator<<(std::ostream& os, const TestFixedValue& v) {
         os << v.to_string();
@@ -437,12 +449,14 @@ public:
     }
 
     // This is not mandatory overridden method for BtreeValue, but for testing comparision
-    bool operator==(const TestFixedValue& other) const { return (m_val == other.m_val); }
+    bool operator==(const TestFixedValue& other) const {
+        return std::memcmp(m_val, other.m_val, VALUE_SIZE) == 0;
+    }
 
-    uint32_t value() const { return m_val; }
+    uint32_t value() const { return m_val[0]; }
 
 private:
-    uint32_t m_val;
+    uint32_t m_val[VALUE_SIZE / sizeof(uint32_t)];
 };
 
 class TestVarLenValue : public BtreeValue {
